@@ -1,0 +1,19 @@
+FROM mcr.microsoft.com/vscode/devcontainers/java:11
+
+# Instalar o Kotlin
+RUN curl -s https://get.sdkman.io | bash \
+    && bash -c ". /root/.sdkman/bin/sdkman-init.sh \
+    && sdk install kotlin"
+
+# Copiar o wrapper do Gradle e os arquivos de configuração
+COPY gradle gradle
+COPY build.gradle.kts settings.gradle.kts gradlew ./
+
+# Verificar e instalar dependências
+RUN ./gradlew --version
+
+# Copiar o código-fonte
+COPY src src
+
+# Definir o diretório de trabalho
+WORKDIR /workspace

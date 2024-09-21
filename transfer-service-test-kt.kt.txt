@@ -1,0 +1,72 @@
+package com.example.banktransfer.service
+
+import com.example.banktransfer.model.*
+import com.example.banktransfer.repository.AccountRepository
+import com.example.banktransfer.repository.TransactionRepository
+import io.mockk.*
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import java.time.LocalDateTime
+import java.util.*
+
+class TransferServiceTest {
+
+    private lateinit var accountRepository: AccountRepository
+    private lateinit var transactionRepository: TransactionRepository
+    private lateinit var transferService: TransferService
+
+    @BeforeEach
+    fun setUp() {
+        accountRepository = mockk()
+        transactionRepository = mockk()
+        transferService = TransferService(accountRepository, transactionRepository)
+    }
+
+    @Test
+    fun `instantTransfer should transfer money between accounts`() {
+        val fromAccount = Account("1", 1000.0)
+        val toAccount = Account("2", 500.0)
+        val amount = 200.0
+
+        every { accountRepository.findById("1") } returns Optional.of(fromAccount)
+        every { accountRepository.findById("2") } returns Optional.of(toAccount)
+        every { accountRepository.save(any()) } returnsArgument 0
+        every { transactionRepository.save(any()) } returnsArgument 0
+
+        val result = transferService.instantTransfer("1", "2", amount)
+
+        assertEquals(800.0, fromAccount.balance)
+        assertEquals(700.0, toAccount.balance)
+        assertEquals(TransactionType.INSTANT, result.type)
+        assertEquals(TransactionStatus.COMPLETED, result.status)
+
+        verify(exactly = 1) { accountRepository.save(fromAccount) }
+        verify(exactly = 1) { accountRepository.save(toAccount) }
+        verify(exactly = 1) { transactionRepository.save(any()) }
+    }
+
+    @Test
+    fun `instantTransfer should throw exception when insufficient funds`() {
+        val fromAccount = Account("1", 100.0)
+        val toAccount = Account("2", 500.0)
+        val amount = 200.0
+
+        every { accountRepository.findById("1") } returns Optional.of(fromAccount)
+        every { accountRepository.findById("2") } returns Optional.of(toAccount)
+
+        assertThrows<IllegalArgumentException> {
+            transferService.instantTransfer("1", "2", amount)
+        }
+
+        verify(exactly = 0) { accountRepository.save(any()) }
+        verify(exactly = 0) { transactionRepository.save(any()) }
+    }
+
+    @Test
+    fun `scheduleTransfer should create a pending scheduled transaction`() {
+        val fromAccountId = "1"
+        val toAccountId = "2"
+        val amount = 200.0
+        val scheduledDate = LocalDateTime.now

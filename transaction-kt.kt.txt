@@ -1,0 +1,25 @@
+package com.example.banktransfer.model
+
+import org.springframework.data.annotation.Id
+import org.springframework.data.mongodb.core.mapping.Document
+import java.time.LocalDateTime
+
+@Document
+data class Transaction(
+    @Id val id: String,
+    val fromAccountId: String,
+    val toAccountId: String,
+    val amount: Double,
+    val type: TransactionType,
+    var status: TransactionStatus,
+    val scheduledDate: LocalDateTime? = null,
+    val createdAt: LocalDateTime = LocalDateTime.now()
+)
+
+enum class TransactionType {
+    INSTANT, SCHEDULED
+}
+
+enum class TransactionStatus {
+    PENDING, COMPLETED, CANCELLED, REFUNDED
+}

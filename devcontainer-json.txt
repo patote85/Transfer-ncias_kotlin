@@ -1,0 +1,17 @@
+{
+  "name": "Kotlin Bank Transfer API",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash"
+  },
+  "extensions": [
+    "vscjava.vscode-java-pack",
+    "fwcd.kotlin",
+    "redhat.vscode-yaml"
+  ],
+  "forwardPorts": [8080],
+  "postCreateCommand": "./gradlew build",
+  "remoteUser": "vscode"
+}

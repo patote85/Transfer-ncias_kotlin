@@ -1,0 +1,85 @@
+package com.example.banktransfer.service
+
+import com.example.banktransfer.model.*
+import com.example.banktransfer.repository.AccountRepository
+import com.example.banktransfer.repository.TransactionRepository
+import org.springframework.stereotype.Service
+import java.time.LocalDateTime
+import java.util.*
+
+@Service
+class TransferService(
+    private val accountRepository: AccountRepository,
+    private val transactionRepository: TransactionRepository
+) {
+    fun instantTransfer(fromAccountId: String, toAccountId: String, amount: Double): Transaction {
+        val fromAccount = accountRepository.findById(fromAccountId).orElseThrow { NoSuchElementException("From account not found") }
+        val toAccount = accountRepository.findById(toAccountId).orElseThrow { NoSuchElementException("To account not found") }
+
+        if (fromAccount.balance < amount) {
+            throw IllegalArgumentException("Insufficient funds")
+        }
+
+        fromAccount.balance -= amount
+        toAccount.balance += amount
+
+        accountRepository.save(fromAccount)
+        accountRepository.save(toAccount)
+
+        val transaction = Transaction(
+            id = UUID.randomUUID().toString(),
+            fromAccountId = fromAccountId,
+            toAccountId = toAccountId,
+            amount = amount,
+            type = TransactionType.INSTANT,
+            status = TransactionStatus.COMPLETED
+        )
+
+        return transactionRepository.save(transaction)
+    }
+
+    fun scheduleTransfer(fromAccountId: String, toAccountId: String, amount: Double, scheduledDate: LocalDateTime): Transaction {
+        val transaction = Transaction(
+            id = UUID.randomUUID().toString(),
+            fromAccountId = fromAccountId,
+            toAccountId = toAccountId,
+            amount = amount,
+            type = TransactionType.SCHEDULED,
+            status = TransactionStatus.PENDING,
+            scheduledDate = scheduledDate
+        )
+
+        return transactionRepository.save(transaction)
+    }
+
+    fun refundTransaction(transactionId: String): Transaction {
+        val transaction = transactionRepository.findById(transactionId).orElseThrow { NoSuchElementException("Transaction not found") }
+
+        if (transaction.status != TransactionStatus.COMPLETED) {
+            throw IllegalStateException("Only completed transactions can be refunded")
+        }
+
+        val fromAccount = accountRepository.findById(transaction.fromAccountId).orElseThrow { NoSuchElementException("From account not found") }
+        val toAccount = accountRepository.findById(transaction.toAccountId).orElseThrow { NoSuchElementException("To account not found") }
+
+        fromAccount.balance += transaction.amount
+        toAccount.balance -= transaction.amount
+
+        accountRepository.save(fromAccount)
+        accountRepository.save(toAccount)
+
+        transaction.status = TransactionStatus.REFUNDED
+        return transactionRepository.save(transaction)
+    }
+
+    fun cancelScheduledTransfer(transactionId: String): Transaction {
+        val transaction = transactionRepository.findById(transactionId).orElseThrow { NoSuchElementException("Transaction not found") }
+
+        if (transaction.type != TransactionType.SCHEDULED || transaction.status != TransactionStatus.PENDING) {
+            throw IllegalStateException("Only pending scheduled transactions can be cancelled")
+        }
+
+        transaction.status = TransactionStatus.CANCELLED
+        return transactionRepository.save(transaction)
+    }
+}

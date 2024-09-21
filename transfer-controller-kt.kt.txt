@@ -1,0 +1,46 @@
+package com.example.banktransfer.controller
+
+import com.example.banktransfer.model.Transaction
+import com.example.banktransfer.service.TransferService
+import org.springframework.format.annotation.DateTimeFormat
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.*
+import java.time.LocalDateTime
+
+@RestController
+@RequestMapping("/api/transfers")
+class TransferController(private val transferService: TransferService) {
+
+    @PostMapping("/instant")
+    fun instantTransfer(
+        @RequestParam fromAccountId: String,
+        @RequestParam toAccountId: String,
+        @RequestParam amount: Double
+    ): ResponseEntity<Transaction> {
+        val transaction = transferService.instantTransfer(fromAccountId, toAccountId, amount)
+        return ResponseEntity.ok(transaction)
+    }
+
+    @PostMapping("/schedule")
+    fun scheduleTransfer(
+        @RequestParam fromAccountId: String,
+        @RequestParam toAccountId: String,
+        @RequestParam amount: Double,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) scheduledDate: LocalDateTime
+    ): ResponseEntity<Transaction> {
+        val transaction = transferService.scheduleTransfer(fromAccountId, toAccountId, amount, scheduledDate)
+        return ResponseEntity.ok(transaction)
+    }
+
+    @PostMapping("/{transactionId}/refund")
+    fun refundTransaction(@PathVariable transactionId: String): ResponseEntity<Transaction> {
+        val transaction = transferService.refundTransaction(transactionId)
+        return ResponseEntity.ok(transaction)
+    }
+
+    @PostMapping("/{transactionId}/cancel")
+    fun cancelScheduledTransfer(@PathVariable transactionId: String): ResponseEntity<Transaction> {
+        val transaction = transferService.cancelScheduledTransfer(transactionId)
+        return ResponseEntity.ok(transaction)
+    }
+}

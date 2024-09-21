@@ -1,0 +1,6 @@
+package com.example.banktransfer.repository
+
+import com.example.banktransfer.model.Account
+import org.springframework.data.mongodb.repository.MongoRepository
+
+interface AccountRepository : MongoRepository<Account, String>
